@@ -20,5 +20,4 @@ print(redis_work.value_of_key('foo'))
 print(redis_work.check_key('na'))
 redis_work.set_key_value("Mohsen", "Sadegh")
 
-print(os.environ.get("DATABASE_USERNAME"))
-# sql_work = SQLWork()
+sql_work = SQLWork()
