@@ -21,3 +21,4 @@ print(redis_work.check_key('na'))
 redis_work.set_key_value("Mohsen", "Sadegh")
 
 sql_work = SQLWork()
+sql_work.run_query()
