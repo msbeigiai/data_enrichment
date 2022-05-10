@@ -1,5 +1,7 @@
 from kafka_work import KafkaWork
 from redis_work import RedisWork
+from sql_work import SQLWork
+import os
 
 
 kafka_work = KafkaWork('test-topic')
@@ -17,3 +19,6 @@ redis_work = RedisWork()
 print(redis_work.value_of_key('foo'))
 print(redis_work.check_key('na'))
 redis_work.set_key_value("Mohsen", "Sadegh")
+
+print(os.environ.get("DATABASE_USERNAME"))
+# sql_work = SQLWork()
