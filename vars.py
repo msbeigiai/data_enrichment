@@ -12,7 +12,7 @@ tables = {
 
 topics = {
     "rtt_topic": "DebeziumTestServer.dbo.RETAILTRANSACTIONTABLE",
-    "rtst_topic": "DebeziumTestServer.dbo.RETAILTRANSACTIONSAILESTRANS",
+    "rtst_topic": "DebeziumTestServer.dbo.RETAILTRANSACTIONSALESTRANS",
 }
 
 sql_conf = {
