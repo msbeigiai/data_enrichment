@@ -3,3 +3,4 @@ kafka/
 *.env
 temp/enrichment.py
 consumer_rtst.py
+.pytest_cache

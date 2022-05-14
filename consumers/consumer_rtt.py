@@ -1,4 +1,4 @@
-from kafka import KafkaConsumer
+from kafka import KafkaConsumer, KafkaProducer
 from json import loads, dumps
 from vars import topics, sql_conf, tables
 import redis
@@ -13,6 +13,11 @@ consumer = KafkaConsumer(
     enable_auto_commit=True,
     group_id=topics["rtt_topic"] + '_group',
     value_deserializer=lambda x: loads(x.decode('utf-8'))
+)
+
+producer = KafkaProducer(
+    bootstrap_servers=['172.31.70.21:9092'],
+    value_serializer=lambda x: dumps(x).encode('utf-8')
 )
 
 conn = pyodbc.connect(
@@ -80,5 +85,6 @@ for message in consumer:
     message = message.value
     enriched_msg = data_enrichment(message)
     enriched_data_producer = enriched_msg["payload"]
+    producer.send('rtt_test_producer01', enriched_data_producer)
     print('*' * 100)
     print(enriched_data_producer)
