@@ -7,7 +7,11 @@ tables = {
     "rtt": "RETAILTRANSACTIONTABLE",
     "rtst": "RETAILTRANSACTIONSALESTRANS",
     "rcv": "RETAILCHANNELVIEW",
-    "it": "INVENTTABLE"
+    "it": "INVENTTABLE",
+    "ouv": "OMOPERATINGUNITVIEW",
+    "dpt": "DIRPARTYTABLE",
+    "rct": "RETAILCHANNELTABLE",
+    "ct": "CUSTTABLE",
 }
 
 topics = {
