@@ -1,5 +1,5 @@
-from kafka import KafkaConsumer
-from json import loads
+from kafka import KafkaConsumer, KafkaProducer
+import json
 
 consumer_rtst = KafkaConsumer(
     'rtst_test_producer01',
@@ -7,34 +7,14 @@ consumer_rtst = KafkaConsumer(
     auto_offset_reset="earliest",
     enable_auto_commit=True,
     group_id='test-producer' + '_group',
-    value_deserializer=lambda x: loads(x.decode('utf-8'))
+    value_deserializer=lambda x: json.loads(x.decode('utf-8'))
 )
 
-consumer_rtt = KafkaConsumer(
-    'rtt_test_producer01',
-    bootstrap_servers=['172.31.70.21:9092'],
-    auto_offset_reset="earliest",
-    enable_auto_commit=True,
-    group_id='rtt_test_producer01' + '_group',
-    value_deserializer=lambda x: loads(x.decode('utf-8'))
-)
+producer = KafkaProducer(bootstrap_servers=['172.31.70.21:9092'],
+                         value_serializer=lambda x: json.dumps(x).encode('ascii', 'ignore')
+                         )
 
-
-class AggregatedConsumers:
-    def __init__(self):
-        self.rtt_message = None
-        self.rtst_message = None
-        self._consumer_rtst = consumer_rtst
-        self._consumer_rtt = consumer_rtt
-
-    def aggregate(self):
-        for msg in self._consumer_rtst:
-            self.rtst_message = msg.value
-
-        for msg in self._consumer_rtt:
-            self.rtt_message = msg.value
-
-
-ac = AggregatedConsumers()
-ac.aggregate()
-print(ac.rtt_message)
+for msg in consumer_rtst:
+    msg = msg.value["after"]
+    print(msg)
+    producer.send('alaki', msg)
