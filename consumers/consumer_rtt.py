@@ -84,7 +84,7 @@ else:
 for message in consumer:
     message = message.value
     enriched_msg = data_enrichment(message)
-    enriched_data_producer = enriched_msg["payload"]
+    enriched_data_producer = enriched_msg["payload"]["after"]
     producer.send('rtt_test_producer01', enriched_data_producer)
     print('*' * 100)
     print(enriched_data_producer)
