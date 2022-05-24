@@ -3,7 +3,6 @@ from vars import *
 import json
 import redis
 import pyodbc
-import kafka_config
 import sql_config
 
 data = {}
