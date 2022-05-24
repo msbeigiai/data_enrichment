@@ -1,35 +1,37 @@
 from kafka import KafkaConsumer, KafkaProducer
-import redis
-from vars import topics, sql_conf, tables
+from vars import *
 import json
+import redis
 import pyodbc
+import kafka_config
+import sql_config
 
 data = {}
 
-conn = pyodbc.connect(
-    f'DRIVER={sql_conf["driver"]};SERVER=' + sql_conf["server"] + ';DATABASE=' + sql_conf["database"] + \
-    ';UID=' + sql_conf["username"] + ';PWD=' + sql_conf["password"])
-cursor = conn.cursor()
-
-r = redis.Redis(host="localhost", port=6379, db=0)
-
 consumer = KafkaConsumer(
     topics["rtt_topic_2"],
-    bootstrap_servers=['172.31.70.21:9092'],
+    bootstrap_servers=['172.31.70.22:9092'],
     auto_offset_reset="earliest",
     enable_auto_commit=True,
     group_id=topics["rtt_topic_2"] + '__group',
     value_deserializer=lambda x: json.loads(x.decode('utf-8'))
 )
 
+
 producer = KafkaProducer(
-    bootstrap_servers=['172.31.70.21:9092'],
+    bootstrap_servers=['172.31.70.22:9092'],
     value_serializer=lambda x: json.dumps(x).encode('utf-8')
 )
 
 
+cursor = sql_config.sql_initialize(sql_conf)
+
+r = redis.Redis(host="localhost", port=6379, db=0)
+
+
 def rtt_data_fetch(dic):
-    list_items = ["TRANSACTIONID", "STORE", "TRANSTIME", "PAYMENTAMOUNT", "CREATEDDATETIME", "CUSTACCOUNT"]
+    list_items = ["TRANSACTIONID", "STORE", "TRANSTIME",
+                  "PAYMENTAMOUNT", "CREATEDDATETIME", "CUSTACCOUNT"]
     var = {k: v for k, v in dic.items() if k in [val for val in list_items]}
     return var
 
@@ -92,12 +94,6 @@ def rtt_store_fetch(new_data):
 
 
 def rtst_fetch_namealiases_redis(key):
-    # if r.get(key) is not None:
-    #     value = r.get(key)
-    #     value = value.decode('utf-8')
-    #     return value
-    # else:
-    # Fetch data from sql
 
     name_item = {}
 
@@ -129,25 +125,6 @@ def rtst_fetch_namealiases_redis(key):
 
     return [v for v in name_item.values()]
 
-    # temp_dict = {k: v for (k, v) in zip(item_id, name_aliases)}
-
-    # for k, v in temp_dict.items():
-    #     if temp_dict.get(k):
-    #         r.set(k, v)
-    # return name_aliases
-    # print(temp_dict)
-    # for item, val in item_id:
-    #     i = len(item_id)
-    #     r.set(item, value)
-
-
-# return value
-#     if value:
-#         r.set(key, str(value))
-#         return value
-#     else:
-#         return ''
-
 
 def rtst_fetch_netprice(key):
     query_net_price = "select d.PRICE - d.DISCAMOUNT as NETPRICE from RETAILTRANSACTIONTABLE c " \
@@ -173,17 +150,23 @@ def rtst_fetch_data(new_data):
 
 def send_producer(ledger_data):
     if producer:
-        producer.send('ledger-05', ledger_data)
+        producer.send('ledger-06', ledger_data)
 
 
-if consumer:
-    for msg in consumer:
-        msg = msg.value
-        msg_cleand = rtt_data_fetch(msg["payload"]["after"])
-        msg_cleand = rtt_store_fetch(msg_cleand)
-        msg_rtst = rtst_fetch_data(msg_cleand)
+for msg in consumer:
 
-        data["RETAIL_TRANSACTION_TABLE"] = msg_cleand
-        data["RETAIL_TRANSACTION_SALES_TRANS"] = msg_rtst
-        send_producer(data)
-        print(data)
+    if msg is None:
+        continue
+
+    msg = msg.value  # ().decode('utf-8')
+
+    msg_cleand = rtt_data_fetch(msg["after"])
+    msg_cleand = rtt_store_fetch(msg_cleand)
+    msg_rtst = rtst_fetch_data(msg_cleand)
+
+    data["RETAIL_TRANSACTION_TABLE"] = msg_cleand
+    data["RETAIL_TRANSACTION_SALES_TRANS"] = msg_rtst
+
+    send_producer(data)
+
+    print(data)
