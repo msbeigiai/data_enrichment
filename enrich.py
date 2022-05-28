@@ -246,7 +246,6 @@ def send_producer(ledger_data):
         producer.send('ledger-08-6', ledger_data)
 
 
-
 for msg in consumer:
     if msg is None:
         continue
@@ -266,9 +265,10 @@ for msg in consumer:
 
     data_to_send = make_json(final_data)
 
+
     for m in data_to_send:
         send_producer(m)
-        with open(f"test_{round(time.time()*1000)}.json", "w") as f:
+        with open(f"data__{round(time.time()*1000)}.json", "w") as f:
             json.dump(m, f)
 
         print(m)
