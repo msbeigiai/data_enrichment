@@ -1,9 +1,10 @@
 temp/
 kafka/
 *.env
-.idea/
+.idea/*
 temp/enrichment.py
 consumer_rtst.py
 .pytest_cache
 consumers/enriched_consumer.py
 *.json
+data/

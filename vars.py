@@ -18,7 +18,7 @@ tables = {
 topics = {
     # "rtt_topic": "DebeziumTestServer.dbo.RETAILTRANSACTIONTABLE",
     # "rtt_topic_2": "dbo.RTT",
-    "rtt_topic_2": "tdb_server08.dbo.RETAILTRANSACTIONTABLE",
+    "rtt_topic_2": "tdb_server09.dbo.RETAILTRANSACTIONTABLE",
     "rtst_topic": "DebeziumTestServer.dbo.RETAILTRANSACTIONSALESTRANS",
 }
 

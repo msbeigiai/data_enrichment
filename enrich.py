@@ -4,6 +4,8 @@ import json
 import redis
 import sql_config
 import time
+from pathlib import Path
+
 
 # final_data = {}
 
@@ -245,6 +247,16 @@ def send_producer(ledger_data):
     if producer:
         producer.send('ledger-08-6', ledger_data)
 
+def write_to_json(message, file_name):
+
+    base = Path('data')
+    path_to_save = base / file_name
+    base.mkdir(exist_ok=True)
+
+    with open(path_to_save, "w") as f:
+        json.dump(message, f)
+
+
 
 for msg in consumer:
     if msg is None:
@@ -267,8 +279,9 @@ for msg in consumer:
 
 
     for m in data_to_send:
-        send_producer(m)
-        with open(f"data__{round(time.time()*1000)}.json", "w") as f:
-            json.dump(m, f)
+        # send_producer(m)
+        # with open(f"data__{round(time.time()*1000)}.json", "w") as f:
+        #     json.dump(m, f)
+        write_to_json(m, f"data__{round(time.time()*1000)}.json")
 
         print(m)
