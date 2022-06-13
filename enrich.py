@@ -245,7 +245,7 @@ def make_json(data):
 
 def send_producer(ledger_data):
     if producer:
-        producer.send('ledger-08-6', ledger_data)
+        producer.send('ledger-08-12', ledger_data)
 
 def write_to_json(message, file_name):
 
@@ -279,9 +279,7 @@ for msg in consumer:
 
 
     for m in data_to_send:
-        # send_producer(m)
-        # with open(f"data__{round(time.time()*1000)}.json", "w") as f:
-        #     json.dump(m, f)
+        send_producer(m)
         write_to_json(m, f"data__{round(time.time()*1000)}.json")
 
         print(m)
