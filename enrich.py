@@ -6,7 +6,6 @@ import sql_config
 import time
 from pathlib import Path
 
-
 # final_data = {}
 
 consumer = KafkaConsumer(
@@ -14,10 +13,9 @@ consumer = KafkaConsumer(
     bootstrap_servers=['172.31.70.22:9092'],
     auto_offset_reset="earliest",
     enable_auto_commit=True,
-    group_id=topics["rtt_topic_2"] + '__group',
+    group_id=topics["rtt_topic_2"] + '__group2',
     value_deserializer=lambda x: json.loads(x.decode('utf-8'))
 )
-
 
 producer = KafkaProducer(
     bootstrap_servers=['172.31.70.22:9092'],
@@ -28,6 +26,7 @@ cursor = sql_config.sql_initialize(sql_conf)
 
 r = redis.Redis(host="172.31.70.21", port=6379, db=0)
 
+
 def rtt_check_store_redis(key):
     if key is not '':
         if r.get(key) is not None:
@@ -37,9 +36,9 @@ def rtt_check_store_redis(key):
         else:
             # Fetch data from sql
             query_store = "select c.NAME " \
-                        f"from {tables['rct']} a inner join {tables['ouv']} b " \
-                        f"on a.OMOPERATINGUNITID = b.RECID inner join {tables['dpt']} c " \
-                        "ON c.PARTYNUMBER = b.PARTYNUMBER where a.STORENUMBER = '%s'" % key
+                          f"from {tables['rct']} a inner join {tables['ouv']} b " \
+                          f"on a.OMOPERATINGUNITID = b.RECID inner join {tables['dpt']} c " \
+                          "ON c.PARTYNUMBER = b.PARTYNUMBER where a.STORENUMBER = '%s'" % key
             cursor.execute(query_store)
             value = cursor.fetchone()
 
@@ -53,6 +52,7 @@ def rtt_check_store_redis(key):
     else:
         return "Unknown"
 
+
 def rtt_check_cust_account(key):
     if key is not '':
         if r.get(key) is not None:
@@ -62,9 +62,9 @@ def rtt_check_cust_account(key):
         else:
             # Fetch data from sql
             query_store = "select d.NAME " \
-                        "from CUSTTABLE c " \
-                        "inner join DIRPARTYTABLE d on c.PARTY = d.RECID where " \
-                        "c.ACCOUNTNUM = '%s'" % key
+                          "from CUSTTABLE c " \
+                          "inner join DIRPARTYTABLE d on c.PARTY = d.RECID where " \
+                          "c.ACCOUNTNUM = '%s'" % key
             cursor.execute(query_store)
             value = cursor.fetchone()
 
@@ -99,12 +99,12 @@ def rtt_store_fetch(new_data):
         new_data["CUSTACCOUNT"] = custom_number
     return new_data
 
-def rtst_fetch_discount_amount(transaction_id):
 
+def rtst_fetch_discount_amount(transaction_id):
     query_net_dicamount = "select d.DISCAMOUNT from RETAILTRANSACTIONTABLE c " \
-        "inner join RETAILTRANSACTIONSALESTRANS d on " \
-        "c.TRANSACTIONID = d.TRANSACTIONID " \
-        "where c.TRANSACTIONID = '%s'" % transaction_id
+                          "inner join RETAILTRANSACTIONSALESTRANS d on " \
+                          "c.TRANSACTIONID = d.TRANSACTIONID " \
+                          "where c.TRANSACTIONID = '%s'" % transaction_id
     cursor.execute(query_net_dicamount)
 
     return [float(val[0]) for val in cursor.fetchall()]
@@ -112,9 +112,9 @@ def rtst_fetch_discount_amount(transaction_id):
 
 def rtst_fetch_price(transaction_id):
     query_price = "select d.PRICE from RETAILTRANSACTIONTABLE c " \
-        " inner join RETAILTRANSACTIONSALESTRANS d on " \
-        "c.TRANSACTIONID = d.TRANSACTIONID " \
-        "where c.TRANSACTIONID = '%s'" % transaction_id
+                  " inner join RETAILTRANSACTIONSALESTRANS d on " \
+                  "c.TRANSACTIONID = d.TRANSACTIONID " \
+                  "where c.TRANSACTIONID = '%s'" % transaction_id
     cursor.execute(query_price)
 
     return [float(price[0]) for price in cursor.fetchall()]
@@ -122,9 +122,9 @@ def rtst_fetch_price(transaction_id):
 
 def rtst_fetch_recid(transaction_id):
     query_recid = "select d.RECID from RETAILTRANSACTIONTABLE c " \
-        " inner join RETAILTRANSACTIONSALESTRANS d on " \
-        "c.TRANSACTIONID = d.TRANSACTIONID " \
-        "where c.TRANSACTIONID = '%s'" % transaction_id
+                  " inner join RETAILTRANSACTIONSALESTRANS d on " \
+                  "c.TRANSACTIONID = d.TRANSACTIONID " \
+                  "where c.TRANSACTIONID = '%s'" % transaction_id
     cursor.execute(query_recid)
 
     return [recid[0] for recid in cursor.fetchall()]
@@ -140,18 +140,16 @@ def rtst_fetch_itemid(transaction_id):
 
 
 def rtst_fetch_discount_amount(transaction_id):
-
     query_net_dicamount = "select d.DISCAMOUNT from RETAILTRANSACTIONTABLE c " \
-        "inner join RETAILTRANSACTIONSALESTRANS d on " \
-        "c.TRANSACTIONID = d.TRANSACTIONID " \
-        "where c.TRANSACTIONID = '%s'" % transaction_id
+                          "inner join RETAILTRANSACTIONSALESTRANS d on " \
+                          "c.TRANSACTIONID = d.TRANSACTIONID " \
+                          "where c.TRANSACTIONID = '%s'" % transaction_id
     cursor.execute(query_net_dicamount)
 
     return [float(val[0]) for val in cursor.fetchall()]
 
 
 def rtst_fetch_namealiases_redis(key):
-
     name_item = {}
     temp_list = []
 
@@ -161,10 +159,10 @@ def rtst_fetch_namealiases_redis(key):
         temp_name = r.get(item)
         if temp_name:
             if item in name_item.keys():
-                name_item[item+" "] = temp_name.decode('utf-8')
+                name_item[item + " "] = temp_name.decode('utf-8')
                 continue
             name_item[item] = temp_name.decode('utf-8')
-            
+
 
         else:
             name_item[item] = None
@@ -192,17 +190,16 @@ def rtt_data_fetch(dic):
     return var
 
 
-
 def aggregate_data(transaction_id):
     data = {}
     discount_amounts = rtst_fetch_discount_amount(transaction_id)
     prices = rtst_fetch_price(transaction_id)
     net_prices = [price - disc for price,
-                  disc in zip(prices, discount_amounts)]
+                                   disc in zip(prices, discount_amounts)]
     name_aliases = rtst_fetch_namealiases_redis(transaction_id)
     recids = rtst_fetch_recid(transaction_id)
     item_ids = rtst_fetch_itemid(transaction_id)
-    
+
     data["ItemID"] = item_ids
     data["NameAlias"] = name_aliases
     data["Price"] = prices
@@ -216,14 +213,13 @@ def aggregate_data(transaction_id):
 def make_json(data):
     list_items = ["ItemID", "NameAlias", "Price", "DiscountAmount", "NetPrice", "RecID"]
     header_items = ["TRANSACTIONID", "STORE", "TRANSTIME",
-                  "PAYMENTAMOUNT", "CREATEDDATETIME", "CUSTACCOUNT"]
+                    "PAYMENTAMOUNT", "CREATEDDATETIME", "CUSTACCOUNT"]
     temp_list = []
     file_body = {}
     final_msg = {}
 
     items_length = len(data["ItemID"])
 
-    
     file_header = {k: v for (k, v) in data.items() if k in [item for item in header_items]}
     # var = {k: v for k, v in dic.items() if k in [val for val in list_items]}
 
@@ -234,7 +230,7 @@ def make_json(data):
             if k in list_items:
                 file_body[k] = v[i]
                 continue
-                
+
         final_msg = file_header.copy()
         final_msg.update(file_body)
 
@@ -245,17 +241,17 @@ def make_json(data):
 
 def send_producer(ledger_data):
     if producer:
-        producer.send('ledger-08-13', ledger_data)
+        print(producer)
+        producer.send('ledger-08-14', ledger_data)
+
 
 def write_to_json(message, file_name):
-
     base = Path('data')
     path_to_save = base / file_name
     base.mkdir(exist_ok=True)
 
     with open(path_to_save, "w") as f:
         json.dump(message, f)
-
 
 
 for msg in consumer:
@@ -270,16 +266,13 @@ for msg in consumer:
 
     pre_final = aggregate_data(msg_cleaned["TRANSACTIONID"])
 
-    
     final_data = msg_cleaned.copy()
 
     final_data.update(pre_final)
 
     data_to_send = make_json(final_data)
 
-
     for m in data_to_send:
         send_producer(m)
-        write_to_json(m, f"data__{round(time.time()*1000)}.json")
-
+        write_to_json(m, f"data__{round(time.time() * 1000)}.json")
         print(m)

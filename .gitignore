@@ -9,3 +9,4 @@ consumers/enriched_consumer.py
 *.json
 data/
 __pycache__/
+.pytest_cache
