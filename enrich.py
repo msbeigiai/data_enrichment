@@ -125,7 +125,7 @@ def rtt_store_fetch(new_data):
     return new_data
 
 
-def rtst_fetch_discount_amount(transaction_id) -> List[float]:
+def rtst_fetch_discount_amount(transaction_id):
     """
     This function accepts transaction_id and fetches discount amount by
     joining tables in main database.
@@ -141,23 +141,31 @@ def rtst_fetch_discount_amount(transaction_id) -> List[float]:
     return [float(val[0]) for val in cursor.fetchall()]
 
 
-def rtst_fetch_price(transaction_id) -> List[float]:
+def rtst_fetch_price(transaction_id):
     """
     This function fetches price from main database according to
     transaction_id by joining tables and return a list of prices.
     :param transaction_id: with string data type
     :return: list of product prices.
     """
+    price_dict = {}
+    item_ids = rtst_fetch_itemid(transaction_id)
+
     query_price = "select d.PRICE from RETAILTRANSACTIONTABLE c " \
                   " inner join RETAILTRANSACTIONSALESTRANS d on " \
                   "c.TRANSACTIONID = d.TRANSACTIONID " \
                   "where c.TRANSACTIONID = '%s'" % transaction_id
     cursor.execute(query_price)
 
-    return [float(price[0]) for price in cursor.fetchall()]
+    # HERE I HAVE PROBLEM --------------------------------------------------
+    price_list = [float(price[0]) for price in cursor.fetchall()]
+    for i in range(len(price_list)):
+        price_dict[item_ids[i]] = price_list[i]
+
+    return price_dict
 
 
-def rtst_fetch_recid(transaction_id) -> List[float]:
+def rtst_fetch_recid(transaction_id):
     """
     This function fetches rec_id from main database according to
     transaction_id by joining tables and return a list of prices.
@@ -204,7 +212,7 @@ def rtst_fetch_discount_amount(transaction_id):
     return [float(val[0]) for val in cursor.fetchall()]
 
 
-def rtst_fetch_namealiases_redis(transaction_id) -> List[float]:
+def rtst_fetch_namealiases_redis(transaction_id):
     """
     Since, each product name (Name Alias) is needed for data de-normalization process and should
     be located beside item_id in enriched table for OLAP.
@@ -245,7 +253,9 @@ def rtst_fetch_namealiases_redis(transaction_id) -> List[float]:
                 name_item[item] = cursor.fetchone()[0]
                 r.set(item, str(name_item[item]))
 
-    return [v for v in name_item.values()]
+    # return [v for v in name_item.values()]
+    # return {k: v for (k, v) in item_ids, name_item.values()}
+    return name_item
 
 
 def rtt_data_fetch(dic):
@@ -284,8 +294,7 @@ def aggregate_data(transaction_id):
     prices = rtst_fetch_price(transaction_id)
 
     # Calculates net price of each item_id (which means each product which has been purchased).
-    net_prices = [price - disc for price,
-                                   disc in zip(prices, discount_amounts)]
+    net_prices = [price - disc for price, disc in zip(prices, discount_amounts)]
 
     # Fetches name of each product that has been purchased.
     name_aliases = rtst_fetch_namealiases_redis(transaction_id)
@@ -295,10 +304,10 @@ def aggregate_data(transaction_id):
 
     # Each product has been identified by its corresponding item_id. Item_id required for
     # searching through tables to fetch corresponding definition e.g. 'product name or name alias'.
-    item_ids = rtst_fetch_itemid(transaction_id)
+    # item_ids = rtst_fetch_itemid(transaction_id)
 
     # Aggregate all fetched data as new keys
-    data["ItemID"] = item_ids
+    # data["ItemID"] = item_ids
     data["NameAlias"] = name_aliases
     data["Price"] = prices
     data["DiscountAmount"] = discount_amounts
@@ -310,7 +319,7 @@ def aggregate_data(transaction_id):
 
 def make_json(data):
     """
-    Nonetheless, the data which is invoked as an input parameter is
+    Since, the data which is invoked as an input parameter is
     a dictionary with key and a list of values respectively,
     this function made to help Json file format to send cleaned structure data
     to Kafka.
@@ -326,7 +335,6 @@ def make_json(data):
     items_length = len(data["ItemID"])
 
     file_header = {k: v for (k, v) in data.items() if k in [item for item in header_items]}
-    # var = {k: v for k, v in dic.items() if k in [val for val in list_items]}
 
     for i in range(items_length):
         for k, v in data.items():
