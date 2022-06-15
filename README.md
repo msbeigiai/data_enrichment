@@ -1,0 +1,1 @@
+# Data enriched/de-normalization for making OLAP and data warehouse.
