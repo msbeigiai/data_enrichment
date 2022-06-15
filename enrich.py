@@ -156,8 +156,8 @@ def rtst_fetch_price(transaction_id) -> List[float]:
     """
     This function fetches price from main database according to
     transaction_id by joining tables and return a list of prices.
-    :param transaction_id:
-    :return: list ao product prices.
+    :param transaction_id: with string data type
+    :return: list of product prices.
     """
     query_price = "select d.PRICE from RETAILTRANSACTIONTABLE c " \
                   " inner join RETAILTRANSACTIONSALESTRANS d on " \
