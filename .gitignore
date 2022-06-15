@@ -11,3 +11,4 @@ consumers/enriched_consumer.py
 data/
 __pycache__/
 .pytest_cache
+confluent_producer.py
