@@ -1,6 +1,7 @@
 temp/
 kafka/
 *.env
+*.sql
 .idea/
 temp/enrichment.py
 consumer_rtst.py

@@ -242,7 +242,7 @@ def make_json(data):
 def send_producer(ledger_data):
     if producer:
         print(producer)
-        producer.send('ledger-08-14', ledger_data)
+        producer.send('ledger-08-15', ledger_data)
 
 
 def write_to_json(message, file_name):
