@@ -1,4 +1,6 @@
 from kafka import KafkaConsumer, KafkaProducer
+from typing import List
+
 from vars import *
 import json
 import redis
@@ -6,8 +8,7 @@ import sql_config
 import time
 from pathlib import Path
 
-# final_data = {}
-
+# Making a Kafka consumer
 consumer = KafkaConsumer(
     topics["rtt_topic_2"],
     bootstrap_servers=['172.31.70.22:9092'],
@@ -17,13 +18,16 @@ consumer = KafkaConsumer(
     value_deserializer=lambda x: json.loads(x.decode('utf-8'))
 )
 
+# Making a Kafka producer
 producer = KafkaProducer(
     bootstrap_servers=['172.31.70.22:9092'],
     value_serializer=lambda x: json.dumps(x).encode('utf-8')
 )
 
+# Uses 'sql_config' module to make a connection to SQL Server
 cursor = sql_config.sql_initialize(sql_conf)
 
+# Make an Instance of Redis to help fetch/ingest from/to Redis
 r = redis.Redis(host="172.31.70.21", port=6379, db=0)
 
 
@@ -100,15 +104,15 @@ def rtt_check_cust_account(key):
         return "Unknown"
 
 
-def rtt_store_fetch(new_data):
-    store = new_data["STORE"]
-    custaccount = new_data["CUSTACCOUNT"]
-    store_alias = rtt_check_store_redis(store)
-    custom_number = rtt_check_cust_account(custaccount)
-    if store_alias:
-        new_data["STORE"] = store_alias
-        new_data["CUSTACCOUNT"] = custom_number
-    return new_data
+# def rtt_store_fetch(new_data):
+#     store = new_data["STORE"]
+#     custaccount = new_data["CUSTACCOUNT"]
+#     store_alias = rtt_check_store_redis(store)
+#     custom_number = rtt_check_cust_account(custaccount)
+#     if store_alias:
+#         new_data["STORE"] = store_alias
+#         new_data["CUSTACCOUNT"] = custom_number
+#     return new_data
 
 
 def rtt_store_fetch(new_data):
@@ -132,7 +136,13 @@ def rtt_store_fetch(new_data):
     return new_data
 
 
-def rtst_fetch_discount_amount(transaction_id):
+def rtst_fetch_discount_amount(transaction_id) -> List[float]:
+    """
+    This function accepts transaction_id and fetches discount amount by
+    joining tables in main database.
+    :param transaction_id: with string data type.
+    :return: a list with fetched data from main database.
+    """
     query_net_dicamount = "select d.DISCAMOUNT from RETAILTRANSACTIONTABLE c " \
                           "inner join RETAILTRANSACTIONSALESTRANS d on " \
                           "c.TRANSACTIONID = d.TRANSACTIONID " \
@@ -142,7 +152,13 @@ def rtst_fetch_discount_amount(transaction_id):
     return [float(val[0]) for val in cursor.fetchall()]
 
 
-def rtst_fetch_price(transaction_id):
+def rtst_fetch_price(transaction_id) -> List[float]:
+    """
+    This function fetches price from main database according to
+    transaction_id by joining tables and return a list of prices.
+    :param transaction_id:
+    :return: list ao product prices.
+    """
     query_price = "select d.PRICE from RETAILTRANSACTIONTABLE c " \
                   " inner join RETAILTRANSACTIONSALESTRANS d on " \
                   "c.TRANSACTIONID = d.TRANSACTIONID " \
@@ -152,7 +168,13 @@ def rtst_fetch_price(transaction_id):
     return [float(price[0]) for price in cursor.fetchall()]
 
 
-def rtst_fetch_recid(transaction_id):
+def rtst_fetch_recid(transaction_id) -> List[float]:
+    """
+    This function fetches rec_id from main database according to
+    transaction_id by joining tables and return a list of prices.
+    :param transaction_id:
+    :return: list of product red_ids.
+    """
     query_recid = "select d.RECID from RETAILTRANSACTIONTABLE c " \
                   " inner join RETAILTRANSACTIONSALESTRANS d on " \
                   "c.TRANSACTIONID = d.TRANSACTIONID " \
@@ -163,6 +185,12 @@ def rtst_fetch_recid(transaction_id):
 
 
 def rtst_fetch_itemid(transaction_id):
+    """
+    This function fetches item_id from main database according to
+    transaction_id by joining tables and return a list of prices.
+    :param transaction_id:
+    :return: list ao product item_ids.
+    """
     query_itemid = "select c.ITEMID from RETAILTRANSACTIONTABLE d " \
                    "inner join RETAILTRANSACTIONSALESTRANS c on " \
                    "d.TRANSACTIONID = c.TRANSACTIONID where d.TRANSACTIONID = '%s'" % transaction_id
@@ -172,6 +200,12 @@ def rtst_fetch_itemid(transaction_id):
 
 
 def rtst_fetch_discount_amount(transaction_id):
+    """
+    This function fetches discount amount from main database according to
+    transaction_id by joining tables and return a list of prices.
+    :param transaction_id:
+    :return: list ao product discount amount.
+    """
     query_net_dicamount = "select d.DISCAMOUNT from RETAILTRANSACTIONTABLE c " \
                           "inner join RETAILTRANSACTIONSALESTRANS d on " \
                           "c.TRANSACTIONID = d.TRANSACTIONID " \
@@ -181,11 +215,22 @@ def rtst_fetch_discount_amount(transaction_id):
     return [float(val[0]) for val in cursor.fetchall()]
 
 
-def rtst_fetch_namealiases_redis(key):
+def rtst_fetch_namealiases_redis(transaction_id) -> List[float]:
+    """
+    Since, each product name (Name Alias) is needed for data de-normalization process and should
+    be located beside item_id in enriched table for OLAP.
+    This function helps to search each name_alias according to its corresponding transaction_id.
+    Therefore, it determines each name_alias by searching over Redis.
+    If it there won't be the name_alias according to its key, SQL query will fetch data from
+    main database. Otherwise, Redis returns name_alais.
+    Data structures are a bit complicated in this function. It first fetched item_id, then will
+    search through name_aliases.
+    :param transaction_id:
+    :return: List of name_aliases
+    """
     name_item = {}
-    temp_list = []
 
-    item_ids = rtst_fetch_itemid(key)
+    item_ids = rtst_fetch_itemid(transaction_id)
 
     for item in item_ids:
         temp_name = r.get(item)
@@ -206,9 +251,8 @@ def rtst_fetch_namealiases_redis(key):
                                       " inner join RETAILTRANSACTIONSALESTRANS d on " \
                                       "c.TRANSACTIONID = d.TRANSACTIONID " \
                                       "inner join INVENTTABLE b on " \
-                                      f"b.ITEMID = {item} where c.TRANSACTIONID = '%s'" % key
+                                      f"b.ITEMID = {item} where c.TRANSACTIONID = '%s'" % transaction_id
                 cursor.execute(query_transactionid)
-                # name_item[item] = [val[0] for val in cursor.fetchall()]
                 name_item[item] = cursor.fetchone()[0]
                 r.set(item, str(name_item[item]))
 
@@ -264,7 +308,7 @@ def aggregate_data(transaction_id):
     # searching through tables to fetch corresponding definition e.g. 'product name or name alias'.
     item_ids = rtst_fetch_itemid(transaction_id)
 
-
+    # Aggregate all fetched data as new keys
     data["ItemID"] = item_ids
     data["NameAlias"] = name_aliases
     data["Price"] = prices
@@ -276,12 +320,19 @@ def aggregate_data(transaction_id):
 
 
 def make_json(data):
+    """
+    Nonetheless, the data which is invoked as an input parameter is
+    a dictionary with key and a list of values respectively,
+    this function made to help Json file format to send cleaned structure data
+    to Kafka.
+    :param data: Dictionary
+    :return: A list of seperated json format values.
+    """
     list_items = ["ItemID", "NameAlias", "Price", "DiscountAmount", "NetPrice", "RecID"]
     header_items = ["TRANSACTIONID", "STORE", "TRANSTIME",
                     "PAYMENTAMOUNT", "CREATEDDATETIME", "CUSTACCOUNT"]
     temp_list = []
     file_body = {}
-    final_msg = {}
 
     items_length = len(data["ItemID"])
 
@@ -304,12 +355,14 @@ def make_json(data):
     return temp_list
 
 
+# Send cleaned structure data as producer to Kafka
 def send_producer(ledger_data):
     if producer:
         print(producer)
         producer.send('ledger-08-16', ledger_data)
 
 
+# Make .json file format to save in local storage
 def write_to_json(message, file_name):
     base = Path('data')
     path_to_save = base / file_name
@@ -319,6 +372,7 @@ def write_to_json(message, file_name):
         json.dump(message, f)
 
 
+# Main function for manipulating data
 for msg in consumer:
     if msg is None:
         continue
