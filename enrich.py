@@ -104,17 +104,6 @@ def rtt_check_cust_account(key):
         return "Unknown"
 
 
-# def rtt_store_fetch(new_data):
-#     store = new_data["STORE"]
-#     custaccount = new_data["CUSTACCOUNT"]
-#     store_alias = rtt_check_store_redis(store)
-#     custom_number = rtt_check_cust_account(custaccount)
-#     if store_alias:
-#         new_data["STORE"] = store_alias
-#         new_data["CUSTACCOUNT"] = custom_number
-#     return new_data
-
-
 def rtt_store_fetch(new_data):
     """
     This function is first step to data enrichment which is helps
