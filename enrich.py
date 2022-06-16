@@ -125,30 +125,12 @@ def rtt_store_fetch(new_data):
     return new_data
 
 
-# def rtst_fetch_discount_amount(transaction_id):
-#     """
-#     This function accepts transaction_id and fetches discount amount by
-#     joining tables in main database.
-#     :param transaction_id: with string data type.
-#     :return: a list with fetched data from main database.
-#     """
-#     query_net_dicamount = "select d.ITEMID, d.DISCAMOUNT from RETAILTRANSACTIONTABLE c " \
-#                           "inner join RETAILTRANSACTIONSALESTRANS d on " \
-#                           "c.TRANSACTIONID = d.TRANSACTIONID " \
-#                           "where c.TRANSACTIONID = '%s'" % transaction_id
-#     cursor.execute(query_net_dicamount)
-#
-#     temp_ = cursor.fetchall()
-#     return {itemid: float(disc_amount) for (itemid, disc_amount) in temp_}
-#     # return [float(val[0]) for val in cursor.fetchall()]
-
-
 def rtst_fetch_price(transaction_id):
     """
     This function fetches price from main database according to
     transaction_id by joining tables and return a list of prices.
     :param transaction_id: with string data type
-    :return: list of product prices.
+    :return: a dictionary of product prices beside itemids.
     """
 
     query_price = "select d.ITEMID, d.PRICE from RETAILTRANSACTIONTABLE c " \
@@ -159,7 +141,6 @@ def rtst_fetch_price(transaction_id):
 
     temp_ = cursor.fetchall()
     return {itemid: float(price) for (itemid, price) in temp_}
-    # return [float(price[0]) for price in cursor.fetchall()]
 
 
 def rtst_fetch_recid(transaction_id):
@@ -167,7 +148,7 @@ def rtst_fetch_recid(transaction_id):
     This function fetches rec_id from main database according to
     transaction_id by joining tables and return a list of prices.
     :param transaction_id:
-    :return: list of product red_ids.
+    :return: dictionary of product rec_ids beside itemids.
     """
     query_recid = "select d.ITEMID, d.RECID from RETAILTRANSACTIONTABLE c " \
                   " inner join RETAILTRANSACTIONSALESTRANS d on " \
@@ -177,7 +158,6 @@ def rtst_fetch_recid(transaction_id):
 
     temp_ = cursor.fetchall()
     return {itemid: recid for (itemid, recid) in temp_}
-    # return [recid[0] for recid in cursor.fetchall()]
 
 
 def rtst_fetch_itemid(transaction_id):
@@ -200,7 +180,7 @@ def rtst_fetch_discount_amount(transaction_id):
     This function fetches discount amount from main database according to
     transaction_id by joining tables and return a list of prices.
     :param transaction_id:
-    :return: list ao product discount amount.
+    :return: dictionary of product discount amount.
     """
     query_net_dicamount = "select d.ITEMID, d.DISCAMOUNT from RETAILTRANSACTIONTABLE c " \
                           "inner join RETAILTRANSACTIONSALESTRANS d on " \
@@ -210,7 +190,6 @@ def rtst_fetch_discount_amount(transaction_id):
 
     temp_ = cursor.fetchall()
     return {itemid: float(disc_amount) for (itemid, disc_amount) in temp_}
-    # return [float(val[0]) for val in cursor.fetchall()]
 
 
 def rtst_fetch_namealiases_redis(transaction_id):
@@ -254,8 +233,6 @@ def rtst_fetch_namealiases_redis(transaction_id):
                 name_item[item] = cursor.fetchone()[0]
                 r.set(item, str(name_item[item]))
 
-    # return [v for v in name_item.values()]
-    # return {k: v for (k, v) in item_ids, name_item.values()}
     return name_item
 
 
@@ -268,8 +245,7 @@ def rtt_data_fetch(dic):
     :param dic: a dictionary of raw data comes directly from Kafka
     :return: a dictionary contains just filtered columns
     """
-    list_items = ["TRANSACTIONID", "STORE", "TRANSTIME",
-                  "PAYMENTAMOUNT", "CREATEDDATETIME", "CUSTACCOUNT"]
+    list_items = ["TRANSACTIONID", "STORE", "TRANSTIME", "PAYMENTAMOUNT", "CREATEDDATETIME", "CUSTACCOUNT"]
     var = {k: v for k, v in dic.items() if k in [val for val in list_items]}
     return var
 
@@ -296,8 +272,6 @@ def aggregate_data(transaction_id):
     prices = rtst_fetch_price(transaction_id)
 
     # Calculates net price of each item_id (which means each product which has been purchased).
-    # net_prices = [price - disc for price, disc in zip(prices[1], discount_amounts[1])]
-
     for k, v in prices.items():
         net_prices[k] = v - discount_amounts[k]
 
@@ -332,8 +306,7 @@ def make_json(data):
     :return: A list of seperated json format values.
     """
     list_items = ["ItemID", "NameAlias", "Price", "DiscountAmount", "NetPrice", "RecID"]
-    header_items = ["TRANSACTIONID", "STORE", "TRANSTIME",
-                    "PAYMENTAMOUNT", "CREATEDDATETIME", "CUSTACCOUNT"]
+    header_items = ["TRANSACTIONID", "STORE", "TRANSTIME", "PAYMENTAMOUNT", "CREATEDDATETIME", "CUSTACCOUNT"]
     temp_list = []
     file_body = {}
 
