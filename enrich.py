@@ -336,7 +336,7 @@ def make_json(data):
 def send_producer(ledger_data):
     if producer:
         print(producer)
-        producer.send('ledger-08-16', ledger_data)
+        producer.send('ledger-08-17', ledger_data)
 
 
 # Make .json file format to save in local storage
