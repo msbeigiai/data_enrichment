@@ -125,20 +125,22 @@ def rtt_store_fetch(new_data):
     return new_data
 
 
-def rtst_fetch_discount_amount(transaction_id):
-    """
-    This function accepts transaction_id and fetches discount amount by
-    joining tables in main database.
-    :param transaction_id: with string data type.
-    :return: a list with fetched data from main database.
-    """
-    query_net_dicamount = "select d.DISCAMOUNT from RETAILTRANSACTIONTABLE c " \
-                          "inner join RETAILTRANSACTIONSALESTRANS d on " \
-                          "c.TRANSACTIONID = d.TRANSACTIONID " \
-                          "where c.TRANSACTIONID = '%s'" % transaction_id
-    cursor.execute(query_net_dicamount)
-
-    return [float(val[0]) for val in cursor.fetchall()]
+# def rtst_fetch_discount_amount(transaction_id):
+#     """
+#     This function accepts transaction_id and fetches discount amount by
+#     joining tables in main database.
+#     :param transaction_id: with string data type.
+#     :return: a list with fetched data from main database.
+#     """
+#     query_net_dicamount = "select d.ITEMID, d.DISCAMOUNT from RETAILTRANSACTIONTABLE c " \
+#                           "inner join RETAILTRANSACTIONSALESTRANS d on " \
+#                           "c.TRANSACTIONID = d.TRANSACTIONID " \
+#                           "where c.TRANSACTIONID = '%s'" % transaction_id
+#     cursor.execute(query_net_dicamount)
+#
+#     temp_ = cursor.fetchall()
+#     return {itemid: float(disc_amount) for (itemid, disc_amount) in temp_}
+#     # return [float(val[0]) for val in cursor.fetchall()]
 
 
 def rtst_fetch_price(transaction_id):
@@ -148,21 +150,16 @@ def rtst_fetch_price(transaction_id):
     :param transaction_id: with string data type
     :return: list of product prices.
     """
-    price_dict = {}
-    item_ids = rtst_fetch_itemid(transaction_id)
 
-    query_price = "select d.PRICE from RETAILTRANSACTIONTABLE c " \
+    query_price = "select d.ITEMID, d.PRICE from RETAILTRANSACTIONTABLE c " \
                   " inner join RETAILTRANSACTIONSALESTRANS d on " \
                   "c.TRANSACTIONID = d.TRANSACTIONID " \
                   "where c.TRANSACTIONID = '%s'" % transaction_id
     cursor.execute(query_price)
 
-    # HERE I HAVE PROBLEM --------------------------------------------------
-    price_list = [float(price[0]) for price in cursor.fetchall()]
-    for i in range(len(price_list)):
-        price_dict[item_ids[i]] = price_list[i]
-
-    return price_dict
+    temp_ = cursor.fetchall()
+    return {itemid: float(price) for (itemid, price) in temp_}
+    # return [float(price[0]) for price in cursor.fetchall()]
 
 
 def rtst_fetch_recid(transaction_id):
@@ -172,13 +169,15 @@ def rtst_fetch_recid(transaction_id):
     :param transaction_id:
     :return: list of product red_ids.
     """
-    query_recid = "select d.RECID from RETAILTRANSACTIONTABLE c " \
+    query_recid = "select d.ITEMID, d.RECID from RETAILTRANSACTIONTABLE c " \
                   " inner join RETAILTRANSACTIONSALESTRANS d on " \
                   "c.TRANSACTIONID = d.TRANSACTIONID " \
                   "where c.TRANSACTIONID = '%s'" % transaction_id
     cursor.execute(query_recid)
 
-    return [recid[0] for recid in cursor.fetchall()]
+    temp_ = cursor.fetchall()
+    return {itemid: recid for (itemid, recid) in temp_}
+    # return [recid[0] for recid in cursor.fetchall()]
 
 
 def rtst_fetch_itemid(transaction_id):
@@ -203,13 +202,15 @@ def rtst_fetch_discount_amount(transaction_id):
     :param transaction_id:
     :return: list ao product discount amount.
     """
-    query_net_dicamount = "select d.DISCAMOUNT from RETAILTRANSACTIONTABLE c " \
+    query_net_dicamount = "select d.ITEMID, d.DISCAMOUNT from RETAILTRANSACTIONTABLE c " \
                           "inner join RETAILTRANSACTIONSALESTRANS d on " \
                           "c.TRANSACTIONID = d.TRANSACTIONID " \
                           "where c.TRANSACTIONID = '%s'" % transaction_id
     cursor.execute(query_net_dicamount)
 
-    return [float(val[0]) for val in cursor.fetchall()]
+    temp_ = cursor.fetchall()
+    return {itemid: float(disc_amount) for (itemid, disc_amount) in temp_}
+    # return [float(val[0]) for val in cursor.fetchall()]
 
 
 def rtst_fetch_namealiases_redis(transaction_id):
@@ -286,6 +287,7 @@ def aggregate_data(transaction_id):
     :return: a dictionary with enriched/de-normalized data.
     """
     data = {}
+    net_prices = {}
 
     # Fetch discount amount from main database.
     discount_amounts = rtst_fetch_discount_amount(transaction_id)
@@ -294,7 +296,10 @@ def aggregate_data(transaction_id):
     prices = rtst_fetch_price(transaction_id)
 
     # Calculates net price of each item_id (which means each product which has been purchased).
-    net_prices = [price - disc for price, disc in zip(prices, discount_amounts)]
+    # net_prices = [price - disc for price, disc in zip(prices[1], discount_amounts[1])]
+
+    for k, v in prices.items():
+        net_prices[k] = v - discount_amounts[k]
 
     # Fetches name of each product that has been purchased.
     name_aliases = rtst_fetch_namealiases_redis(transaction_id)
@@ -304,10 +309,10 @@ def aggregate_data(transaction_id):
 
     # Each product has been identified by its corresponding item_id. Item_id required for
     # searching through tables to fetch corresponding definition e.g. 'product name or name alias'.
-    # item_ids = rtst_fetch_itemid(transaction_id)
+    item_ids = rtst_fetch_itemid(transaction_id)
 
     # Aggregate all fetched data as new keys
-    # data["ItemID"] = item_ids
+    data["ItemID"] = item_ids
     data["NameAlias"] = name_aliases
     data["Price"] = prices
     data["DiscountAmount"] = discount_amounts
@@ -340,8 +345,10 @@ def make_json(data):
         for k, v in data.items():
             if k not in list_items:
                 continue
-            if k in list_items:
+            if k == "ItemID" and k in list_items:
                 file_body[k] = v[i]
+            elif k != "ItemID" and k in list_items:
+                file_body[k] = v[file_body["ItemID"]]
                 continue
 
         final_msg = file_header.copy()
